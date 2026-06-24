@@ -570,3 +570,4 @@ export default function App() {
     </div>
   );
 }
+export default App; // (หรือชื่อฟังก์ชันหลักของคุณ)
