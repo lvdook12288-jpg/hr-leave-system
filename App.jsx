@@ -65,7 +65,7 @@ export default function App() {
     return Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
   };
 
-  const sheetApiUrl = 'https://script.google.com/macros/s/AKfycbytdTZwsWm5y6PQS6U2TQRs238FZbskry9QLEV6mks/dev';
+  const sheetApiUrl = 'https://script.google.com/macros/s/AKfycbyUjzZu8D3HHQN0W0zMKYY08T8_fYb8oAwlk9hk2u2FSpPp-6ric1tNSFYu_7Iv2DYz/exec';
 
   useEffect(() => {
     const fetchUsersFromSheet = async () => {
