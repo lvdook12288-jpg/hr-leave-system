@@ -149,9 +149,18 @@ export default function App() {
     try {
       const response = await fetch(sheetApiUrl, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // แก้ปัญหา CORS
         body: JSON.stringify({ action: 'createLeave', data: newRequest })
       });
-      const result = await response.json();
+      
+      const textResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResponse);
+      } catch(e) {
+        throw new Error("Apps Script ยังไม่อัปเดต (กรุณาทำ New Deployment ที่ Google Sheets)");
+      }
+
       if (result.status === 'success') {
         setLeaves([newRequest, ...leaves]); 
         showToast('บันทึกใบลาสำเร็จ!', 'success');
@@ -159,7 +168,7 @@ export default function App() {
         throw new Error(result.error ? result.error : "บันทึกไม่สำเร็จ");
       }
     } catch (e) {
-      showToast('ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+      showToast(`ผิดพลาด: ${e.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
@@ -170,9 +179,18 @@ export default function App() {
     try {
       const response = await fetch(sheetApiUrl, {
         method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // แก้ปัญหา CORS
         body: JSON.stringify({ action: 'updateLeaveStatus', data: { id: leaveId, status: newStatus } })
       });
-      const result = await response.json();
+      
+      const textResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResponse);
+      } catch(e) {
+        throw new Error("Apps Script ยังไม่อัปเดต (กรุณาทำ New Deployment ที่ Google Sheets)");
+      }
+
       if (result.status === 'success') {
         setLeaves(leaves.map(l => l.id === leaveId ? { ...l, status: newStatus } : l));
         showToast(`ทำรายการ ${newStatus === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'} เรียบร้อย`, newStatus === 'approved' ? 'success' : 'error');
@@ -180,7 +198,7 @@ export default function App() {
         throw new Error(result.error ? result.error : "บันทึกไม่สำเร็จ");
       }
     } catch (e) {
-      showToast('ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+      showToast(`ผิดพลาด: ${e.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
