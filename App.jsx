@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 
 // หมายเหตุ: ต้องใส่ LIFF ID ที่ถูกต้องจากหน้า LINE Developers
-const liffId = 'ใส่_LIFF_ID_ของคุณตรงนี้'; 
+const liffId = '2010503968-1BUOroTe'; 
 
 const leaveTypes = [
   { id: 'L1', name: 'ลาป่วย', color: 'bg-red-100 text-red-800', barColor: 'bg-red-500', defaultQuota: 30 },
