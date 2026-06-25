@@ -118,7 +118,8 @@ export default function App() {
             const safeFloat = (val) => parseFloat(val) || 0;
             
             let userRole = 'employee';
-            const explicitRole = safeStr(rowData['ระดับสิทธิ์']).toLowerCase();
+            // ค้นหาสิทธิ์จากคอลัมน์ ระดับสิทธิ์, สิทธิ์การใช้งาน หรือ Role
+            const explicitRole = safeStr(rowData['ระดับสิทธิ์'] || rowData['สิทธิ์การใช้งาน'] || rowData['Role'] || '').toLowerCase();
             if (explicitRole.includes('แอดมิน') || explicitRole.includes('admin')) {
               userRole = 'admin';
             } else if (explicitRole.includes('หัวหน้า') || explicitRole.includes('manager')) {
@@ -129,7 +130,7 @@ export default function App() {
               id: rowData['รหัส'] ? rowData['รหัส'].toString() : `EMP${index+1}`,
               name: `${safeStr(rowData['ชื่อ'])} ${safeStr(rowData['นามสกุล'])}`.trim() || 'ไม่ระบุชื่อ',
               dept: safeStr(rowData['แผนก']),
-              role: (safeStr(rowData['ชื่อแผนก']) === 'สำนักงาน' || userRole === 'admin') ? 'admin' : userRole,
+              role: userRole, // ใช้สิทธิ์จาก Google Sheets โดยตรง ไม่บังคับให้แผนกสำนักงานเป็น admin อีกต่อไป
               status: safeStr(rowData['สถานะ']).toLowerCase() === 'active' ? 'active' : 'inactive',
               tenure: safeFloat(rowData['อายุงาน(ปี)']),
               lineUserId: safeStr(rowData['lineUserId']), // รหัส LINE ID จาก Sheet
