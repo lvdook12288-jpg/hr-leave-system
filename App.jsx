@@ -3,6 +3,9 @@ import {
   AlertCircle, CheckSquare, XCircle, CheckCircle, Calendar, Home, Plus, FileText, Users, Settings, Loader2, LogOut, Search, User
 } from 'lucide-react';
 
+// เพิ่ม LIFF SDK
+const liffId = 'ใส่_LIFF_ID_ของคุณตรงนี้'; // เอามาจาก LINE Developers แท็บ LIFF (รูปแบบ xxxxxxxxxx-xxxxxxx)
+
 const leaveTypes = [
   { id: 'L1', name: 'ลาป่วย', color: 'bg-red-100 text-red-800', barColor: 'bg-red-500', defaultQuota: 30 },
   { id: 'L2', name: 'ลากิจ', color: 'bg-yellow-100 text-yellow-800', barColor: 'bg-yellow-500', defaultQuota: 3 },
@@ -30,7 +33,7 @@ const StatCard = ({ title, value, color }) => {
 const PieChartIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>;
 const HistoryIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>;
 
-function App() {
+export default function App() {
   const [users, setUsers] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [holidays, setHolidays] = useState([]);
@@ -48,28 +51,44 @@ function App() {
   const [reportEndDate, setReportEndDate] = useState('');
   const [viewEmployeeHistory, setViewEmployeeHistory] = useState(null);
 
+  // LIFF & Line User State
+  const [liffUser, setLiffUser] = useState(null);
+
   // Leave Form State
   const [toastMsg, setToastMsg] = useState({ text: '', type: 'info' });
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
-  const [newLeaveForm, setNewLeaveForm] = useState({ typeId: 'L1', startDate: '', endDate: '', reason: '' });
-
-  const showToast = (msg, type = 'info') => {
-    setToastMsg({ text: msg, type });
-    setTimeout(() => setToastMsg({ text: '', type: 'info' }), 4000);
-  };
-
-  const calculateDays = (start, end) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    if (endDate < startDate) return 0;
-    return Math.ceil(Math.abs(endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  // ลิงก์ Apps Script ของคุณ ฝังให้เรียบร้อยแล้ว
+  // ⚠️⚠️⚠️ สำคัญ: เปลี่ยนลิงก์ด้านล่างนี้ให้เป็นลิงก์ Google Apps Script ของคุณที่ลงท้ายด้วย /exec ⚠️⚠️⚠️
   const sheetApiUrl = 'https://script.google.com/macros/s/AKfycbyUjzZu8D3HHQN0W0zMKYY08T8_fYb8oAwlk9hk2u2FSpPp-6ric1tNSFYu_7Iv2DYz/exec';
 
+  // 1. กำหนดค่า LIFF เริ่มต้น
+  useEffect(() => {
+    const initLiff = async () => {
+      try {
+        await window.liff.init({ liffId: liffId });
+        if (window.liff.isLoggedIn()) {
+          const profile = await window.liff.getProfile();
+          setLiffUser(profile);
+          // showToast(`สวัสดีคุณ ${profile.displayName} จาก LINE`, 'success');
+        } else {
+           // ถ้าเปิดบนเบราว์เซอร์ปกติ อาจจะต้อง login
+           // window.liff.login(); 
+        }
+      } catch (err) {
+        console.error('LIFF init failed', err);
+      }
+    };
+    
+    // โหลด LIFF script เข้ามาในหน้าเว็บก่อน
+    if (!window.liff) {
+      const script = document.createElement('script');
+      script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+      script.onload = initLiff;
+      document.body.appendChild(script);
+    } else {
+      initLiff();
+    }
+  }, []);
+
+  // 2. ดึงข้อมูลพนักงาน (ทำงานหลังจากโหลด LIFF เสร็จ)
   useEffect(() => {
     const fetchUsersFromSheet = async () => {
       try {
@@ -97,10 +116,10 @@ function App() {
             return {
               id: rowData['รหัส'] ? rowData['รหัส'].toString() : `EMP${index+1}`,
               name: `${safeStr(rowData['ชื่อ'])} ${safeStr(rowData['นามสกุล'])}`.trim() || 'ไม่ระบุชื่อ',
-              dept: safeStr(rowData['ชื่อแผนก']) || 'General',
-              role: userRole,
+              role: (safeStr(rowData['ชื่อแผนก']) === 'สำนักงาน') ? 'admin' : 'employee',
               status: safeStr(rowData['สถานะ']).toLowerCase() === 'active' ? 'active' : 'inactive',
               tenure: safeFloat(rowData['อายุงาน(ปี)']),
+              lineUserId: safeStr(rowData['lineUserId']), // ดึงค่า LINE ID มาด้วย
               balances: { 
                 L1: safeFloat(rowData['ลาป่วย_ใช้แล้ว']), L2: safeFloat(rowData['ลากิจ_ใช้แล้ว']), 
                 L3: safeFloat(rowData['ลาพักร้อน_ใช้แล้ว']), L4: safeFloat(rowData['ลาคลอด_ใช้แล้ว']), 
@@ -118,6 +137,18 @@ function App() {
           });
           setUsers(fetchedUsers);
           setLeaves(result.data.leaves ? result.data.leaves : []);
+          
+          // ระบบ Auto-Login ตรวจสอบว่ามีพนักงานที่มี Line ID นี้หรือไม่
+          if (liffUser) {
+             const matchedUser = fetchedUsers.find(u => u.lineUserId === liffUser.userId);
+             if (matchedUser && matchedUser.status === 'active') {
+                setCurrentUser(matchedUser);
+                setIsLoggedIn(true);
+                setActiveTab('dashboard');
+                showToast(`ยินดีต้อนรับ ${matchedUser.name} (Auto-Login)`, 'success');
+             }
+          }
+
         }
       } catch (error) {
         showToast(`ไม่สามารถเชื่อมต่อ Database ได้: ${error.message}`, 'error'); 
@@ -524,11 +555,11 @@ function App() {
         )}
       </nav>
       <div className="flex-1">
-        {!isLoggedIn ? renderLoginView() : (currentUser.role === 'employee' ? <div className="py-6"><EmployeeLeaveComponent user={currentUser} /></div> : renderAdminView())}
+        {/* หากยังไม่ได้ Log in และไม่มี Auto-login จาก LIFF ให้แสดงหน้า Login */}
+        {!isLoggedIn ? renderLoginView() : (currentUser.role === 'admin' ? renderAdminView() : <div className="py-6"><EmployeeLeaveComponent user={currentUser} /></div>)}
       </div>
 
-      {isLeaveModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex justify-center items-end sm:items-center p-0 sm:p-4">
+      {/* Shared Leave Form Modal */}
           <div className="bg-white w-full max-w-md p-6 rounded-t-2xl sm:rounded-2xl shadow-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-gray-800">📝 กรอกแบบฟอร์มการลา</h3>
@@ -570,4 +601,3 @@ function App() {
     </div>
   );
 }
-export default App; // (หรือชื่อฟังก์ชันหลักของคุณ)
